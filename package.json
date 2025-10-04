@@ -1,0 +1,77 @@
+{
+  "name": "electron-js-test",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "kiosk",
+    "electron",
+    "secure"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "description": "Secure Kiosk Application",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^38.1.2",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.kiosk.secure-app",
+    "productName": "Secure Kiosk",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "entitlements.plist",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "entitlements": "entitlements.plist",
+      "entitlementsInherit": "entitlements.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "This application needs access to your microphone to provide audio functionality.",
+        "NSCameraUsageDescription": "This application may need access to your camera for video functionality."
+      },
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}
