@@ -1,6 +1,6 @@
 {
   "name": "electron-js-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -20,7 +20,7 @@
   "description": "Secure Kiosk Application",
   "dependencies": {},
   "devDependencies": {
-    "electron": "^38.1.2",
+    "electron": "^28.1.2",
     "electron-builder": "^24.13.3"
   },
   "build": {
@@ -32,6 +32,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "index.html",
       "package.json",
       "entitlements.plist",
       "Info.plist",
@@ -65,7 +66,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "requestedExecutionLevel": "highestAvailable",
+      "requestedExecutionLevel": "asInvoker",
       "publisherName": "Your Company Name"
     },
     "nsis": {
@@ -78,7 +79,11 @@
       "installerHeaderIcon": "build/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Secure Kiosk"
+      "shortcutName": "Secure Kiosk",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false,
+      "include": "installer.nsh",
+      "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "linux": {
       "target": [

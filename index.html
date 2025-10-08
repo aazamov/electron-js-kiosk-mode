@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Kiosk</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+      }
+      .container {
+        text-align: center;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      .status {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #e8f5e9;
+        border-radius: 5px;
+        color: #2e7d32;
+      }
+      iframe {
+        width: 100%;
+        height: 100vh;
+        border: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- If you want to load the external website, uncomment the iframe below -->
+    <!-- <iframe src="https://humo.neovex.uz/" frameborder="0"></iframe> -->
+
+    <!-- Default content when no internet or for testing -->
+    <div class="container">
+      <h1>Secure Kiosk Application</h1>
+      <div class="status">
+        <p>Application is running in kiosk mode</p>
+        <p>Version: 1.0.0</p>
+      </div>
+    </div>
+  </body>
+</html>

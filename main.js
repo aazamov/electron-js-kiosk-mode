@@ -78,7 +78,29 @@ function createWindow() {
     }
   );
 
-  mainWindow.loadURL("https://humo.neovex.uz/");
+  // Try to load external URL, fallback to local HTML if it fails
+  const loadApp = async () => {
+    try {
+      // First check if we have internet connectivity
+      const { net } = require("electron");
+      const isOnline = net.isOnline();
+
+      if (isOnline) {
+        await mainWindow.loadURL("https://humo.neovex.uz/");
+      } else {
+        throw new Error("No internet connection");
+      }
+    } catch (error) {
+      console.log(
+        "Failed to load external URL, loading local file:",
+        error.message
+      );
+      // Load local HTML file as fallback
+      mainWindow.loadFile(path.join(__dirname, "index.html"));
+    }
+  };
+
+  loadApp();
 
   mainWindow.webContents.once("dom-ready", () => {
     mainWindow.webContents.executeJavaScript(`
