@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Secure Kiosk</string>
+    <key>CFBundleDisplayName</key>
+    <string>Secure Kiosk</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yourcompany.securekiosk</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleExecutable</key>
+    <string>Secure Kiosk</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.10.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    
+    <!-- Microphone Permission -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app needs access to your microphone for voice commands and speech recognition.</string>
+    
+    <!-- Camera Permission (if needed) -->
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs access to your camera for video features.</string>
+    
+    <!-- Additional Permissions -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>This app needs to send Apple events to other applications.</string>
+</dict>
+</plist>

@@ -31,8 +31,10 @@
     },
     "files": [
       "main.js",
+      "preload.js",
       "package.json",
       "entitlements.plist",
+      "Info.plist",
       "node_modules/**/*"
     ],
     "mac": {
@@ -61,7 +63,22 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "build/icon.ico",
+      "requestedExecutionLevel": "highestAvailable",
+      "publisherName": "Your Company Name"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Secure Kiosk"
     },
     "linux": {
       "target": [

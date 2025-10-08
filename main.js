@@ -1,8 +1,35 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  session,
+  systemPreferences,
+  ipcMain,
+} = require("electron");
+const path = require("path");
 
 let mainWindow;
 let isKioskMode = true;
 let isExiting = false;
+
+// Enable media features
+app.commandLine.appendSwitch("enable-features", "MediaStreamTrack");
+app.commandLine.appendSwitch("disable-features", "OutOfBlinkCors");
+
+async function checkMicrophonePermission() {
+  if (process.platform === "darwin") {
+    const status = systemPreferences.getMediaAccessStatus("microphone");
+    console.log("Microphone permission status:", status);
+
+    if (status === "not-determined") {
+      const granted = await systemPreferences.askForMediaAccess("microphone");
+      console.log("Microphone permission granted:", granted);
+      return granted;
+    }
+
+    return status === "granted";
+  }
+  return true;
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -10,12 +37,46 @@ function createWindow() {
     height: 800,
     fullscreen: true,
     kiosk: true,
+    frame: false,
+    alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
+      devTools: false, // Disable devtools in kiosk mode
     },
   });
+
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (webContents, permission, callback, details) => {
+      console.log(
+        `[Permission Request] ${permission} from ${details.requestingUrl}`
+      );
+
+      if (
+        permission === "media" ||
+        permission === "audioCapture" ||
+        permission === "microphone"
+      ) {
+        const url = new URL(details.requestingUrl || "");
+        const allowed = ["humo.neovex.uz"].includes(url.hostname);
+        console.log(
+          `[Permission] ${allowed ? "Granted" : "Denied"}: ${permission}`
+        );
+        return callback(allowed);
+      }
+
+      callback(false);
+    }
+  );
+
+  // Log console messages from the renderer
+  mainWindow.webContents.on(
+    "console-message",
+    (event, level, message, line, sourceId) => {
+      console.log(`[Renderer Console] ${message}`);
+    }
+  );
 
   mainWindow.loadURL("https://humo.neovex.uz/");
 
@@ -29,50 +90,81 @@ function createWindow() {
         right: 20px;
         z-index: 999999;
         background: transparent;
-        color: white;
+        color: transparent;
         border: none;
-        padding: 10px 15px;
+        padding: 30px 40px;
         border-radius: 5px;
         font-size: 14px;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        opacity: 0;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
       \`;
       
       let holdTimer = null;
       const requiredHoldTime = 5000; // 5 seconds
+      let isHolding = false;
       
-      // Add mouse down event
-      exitButton.addEventListener('mousedown', () => {
+      // Function to start hold
+      const startHold = () => {
+        if (isHolding) return;
+        isHolding = true;
+        
         holdTimer = setTimeout(() => {
           // Send message to main process to exit application
           require('electron').ipcRenderer.send('request-exit');
         }, requiredHoldTime);
-      });
+      };
       
-      // Add mouse up event
-      exitButton.addEventListener('mouseup', () => {
+      // Function to cancel hold
+      const cancelHold = () => {
+        isHolding = false;
+        
         if (holdTimer) {
           clearTimeout(holdTimer);
           holdTimer = null;
         }
+      };
+      
+      // Mouse events
+      exitButton.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        startHold();
       });
       
-      // Add mouse leave event (in case mouse leaves button area)
-      exitButton.addEventListener('mouseleave', () => {
-        if (holdTimer) {
-          clearTimeout(holdTimer);
-          holdTimer = null;
-        }
+      exitButton.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        cancelHold();
       });
       
-      // Add hover effect
-      exitButton.addEventListener('mouseenter', () => {
-        exitButton.style.background = '#cc3333';
+      exitButton.addEventListener('mouseleave', (e) => {
+        e.preventDefault();
+        cancelHold();
       });
       
-      exitButton.addEventListener('mouseleave', () => {
-        exitButton.style.background = '#ff4444';
+      // Touch events for touch panels
+      exitButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startHold();
+      }, { passive: false });
+      
+      exitButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        cancelHold();
+      }, { passive: false });
+      
+      exitButton.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        cancelHold();
+      }, { passive: false });
+      
+      // Prevent context menu on long press
+      exitButton.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
       });
       
       // Add to page
@@ -80,9 +172,10 @@ function createWindow() {
     `);
   });
 
+  // Security features for kiosk mode
   // Prevent navigation away from the site
   mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
-    if (navigationUrl !== "https://lh.neovex.uz") {
+    if (!navigationUrl.includes("humo.neovex.uz")) {
       event.preventDefault();
     }
   });
@@ -102,23 +195,64 @@ function createWindow() {
     event.preventDefault();
   });
 
-  // Block all external links
-  mainWindow.webContents.on("new-window", (event) => {
-    event.preventDefault();
-  });
-
-  // Prevent window from being closed (but allow when exiting)
+  // Prevent window from being closed
   mainWindow.on("close", (event) => {
     if (isKioskMode && !isExiting) {
       event.preventDefault();
     }
   });
+
+  // Block keyboard shortcuts
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (isKioskMode && input.type === "keyDown") {
+      // Block all keys except specific allowed ones
+      const allowedKeys = [];
+
+      // Block function keys
+      if (input.key.startsWith("F")) {
+        event.preventDefault();
+        return;
+      }
+
+      // Block system shortcuts
+      if (input.control || input.meta || input.alt) {
+        // Block Ctrl+W, Ctrl+Q, Alt+F4, etc.
+        if (["w", "W", "q", "Q", "F4"].includes(input.key)) {
+          event.preventDefault();
+          return;
+        }
+
+        // Block Alt+Tab
+        if (input.alt && input.key === "Tab") {
+          event.preventDefault();
+          return;
+        }
+
+        // Block Windows key combinations
+        if (input.meta) {
+          event.preventDefault();
+          return;
+        }
+
+        // Block Ctrl+Shift+Esc (Task Manager)
+        if (input.control && input.shift && input.key === "Escape") {
+          event.preventDefault();
+          return;
+        }
+      }
+
+      // Block Escape key
+      if (input.key === "Escape") {
+        event.preventDefault();
+        return;
+      }
+    }
+  });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await checkMicrophonePermission();
   createWindow();
-
-  // No global shortcuts registered - completely secure kiosk mode
 
   // Handle exit request from button
   ipcMain.on("request-exit", () => {
@@ -126,80 +260,25 @@ app.whenReady().then(() => {
     isExiting = true;
     mainWindow.close();
   });
-
-  // Additional security measures are already handled in createWindow()
-
-  mainWindow.webContents.on("before-input-event", (event, input) => {
-    if (isKioskMode) {
-      // Allow only Command/Ctrl + Plus/Minus for zoom
-      const isZoomIn =
-        (input.meta || input.control) &&
-        (input.key === "=" || input.key === "+");
-      const isZoomOut = (input.meta || input.control) && input.key === "-";
-      const isZoomReset = (input.meta || input.control) && input.key === "0";
-
-      // Block all other input
-      if (!isZoomIn && !isZoomOut && !isZoomReset) {
-        event.preventDefault();
-      }
-    }
-  });
-
-  // Block Windows key and Ctrl+Shift+Esc (Task Manager)
-  mainWindow.webContents.on("before-input-event", (event, input) => {
-    if (isKioskMode) {
-      // Block Windows key
-      if (input.key === "Meta" || input.key === "Super") {
-        event.preventDefault();
-      }
-
-      // Block Ctrl+Shift+Esc (Task Manager)
-      if (input.control && input.shift && input.key === "Escape") {
-        event.preventDefault();
-      }
-
-      // Block Alt+Tab (Task Switcher)
-      if (input.alt && input.key === "Tab") {
-        event.preventDefault();
-      }
-
-      // Block Windows+D (Show Desktop)
-      if (input.meta && input.key === "d") {
-        event.preventDefault();
-      }
-
-      // Block Windows+L (Lock Screen)
-      if (input.meta && input.key === "l") {
-        event.preventDefault();
-      }
-
-      // Block Windows+R (Run Dialog)
-      if (input.meta && input.key === "r") {
-        event.preventDefault();
-      }
-    }
-  });
-
-  app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
 });
 
-// Allow app to quit when requested
+// Prevent app from quitting in kiosk mode
 app.on("before-quit", (event) => {
-  // Allow quitting when requested from button
-  // Don't prevent the quit event
+  if (isKioskMode && !isExiting) {
+    event.preventDefault();
+  }
 });
 
 // Handle window closing
-app.on("window-all-closed", function () {
-  if (isExiting) {
-    // Quit the app when exiting via button
+app.on("window-all-closed", () => {
+  if (isExiting || process.platform !== "darwin") {
     app.quit();
   }
   // Otherwise keep it running in kiosk mode
 });
 
-app.on("will-quit", () => {
-  // Clean up on quit
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
